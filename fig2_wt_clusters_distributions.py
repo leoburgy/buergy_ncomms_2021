@@ -1,7 +1,8 @@
 from pathlib import Path
-import pandas as pd
-import numpy as np
+
 import matplotlib
+import numpy as np
+import pandas as pd
 from matplotlib import pyplot as plt
 
 font = {'family': 'sans-serif',
@@ -15,18 +16,18 @@ plt.rc('lines', linewidth=8)
 
 matplotlib.rcParams['axes.linewidth'] = .5
 
-project_path = Path('/Users/leoburgy/epfl/buergy_ncomms/data/fig2/A-C')
+project_path = Path('/Users/leoburgy/Dropbox/buergy_ncomms/data/fig2/A-C')
 genotype = 'WT'
 night = 16
 time_points = [.25, .5, 8]
 
 # Define parameters for histograms
-bin_max = 32
+bin_max = 56
 binsize = 4
 cutoff = 0
 barcolor = '#2250d9'
 bin_partition = np.arange(0, bin_max + 1, binsize)
-tick_partition = np.arange(0, bin_max + 1, bin_max // 8)
+tick_partition = np.arange(0, bin_max + 1, bin_max // (bin_max / (2 * binsize)))
 
 grouper = 'genotype night light replicate chloroplast'.split(' ')
 
@@ -55,7 +56,7 @@ if __name__ == '__main__':
         lambda x: np.average(x['granule_number'],
                              weights=x['weight']))
     mean_granule_number.name = 'w_avg_granule_number'
-    # mean_granule_number.to_excel(project_path / 'mean_granule_number.xlsx')
+    mean_granule_number.to_excel(project_path / 'mean_granule_number.xlsx')
 
     # Derive the pocket number
     pocket_number = (clusters
@@ -138,4 +139,4 @@ if __name__ == '__main__':
             ax.set_ylabel('Frequency')
 
     fig.tight_layout(h_pad=3)
-    fig.savefig(project_path / f'cluster_size_{genotype}_N{night}h_by{binsize}_cutoff{cutoff}.pdf')
+    fig.savefig(project_path / f'cluster_size_{genotype}_N{night}h_by{binsize}_cutoff{cutoff}_max{bin_max}.pdf')
