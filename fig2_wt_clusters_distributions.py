@@ -49,6 +49,8 @@ if __name__ == '__main__':
         ['cluster_size']].sum()
     granule_number.columns = ['granule_number']
     granule_number = granule_number.reset_index().sort_values(by=['night', 'light'], ascending=True)
+    granule_number.to_excel(
+        project_path / 'granule_number.xlsx')
     mean_granule_number = granule_number.groupby('genotype night light replicate'.split(' ')).mean()[['granule_number']]
     n_chloroplasts_weights = granule_number.groupby('genotype night light replicate'.split(' ')).count()['chloroplast']
     mean_granule_number['weight'] = n_chloroplasts_weights
@@ -64,6 +66,8 @@ if __name__ == '__main__':
                      .count())
     pocket_number.columns = ['pocket_number']
     pocket_number = pocket_number.reset_index().sort_values(by=['night', 'light'], ascending=True)
+    pocket_number.to_excel(
+        project_path / 'pocket_number.xlsx')
     pocket_number.groupby('genotype night light replicate'.split(' ')).mean().to_excel(
         project_path / 'mean_pocket_number.xlsx')
     mean_pocket_number = pocket_number.groupby('genotype night light replicate'.split(' ')).mean()[['pocket_number']]
@@ -85,7 +89,8 @@ if __name__ == '__main__':
     grouped = clusters.groupby('genotype night light cluster_size'.split(' ')).sum()[['granules_in_category']]
     grouped = grouped.reset_index()
     grouped = grouped.loc[grouped['cluster_size'] > cutoff]
-    grouped['binned'] = pd.cut(grouped['cluster_size'], bin_partition, labels=bin_partition[1:], include_lowest=True)
+    grouped['binned'] = pd.cut(grouped['cluster_size'], bin_partition,
+                               labels=bin_partition[1:], include_lowest=True)
 
     df_bins = grouped.groupby('genotype night light binned'.split(' ')).sum()['granules_in_category'].reset_index()
 
@@ -95,8 +100,11 @@ if __name__ == '__main__':
     a = axs[0, :]
     for i, t in enumerate(sorted(granule_number.light.unique())):
         sub = granule_number.loc[granule_number['light'] == t]
-        weights = sub['granule_number'] / sub['granule_number'].sum()
-        a[i].hist(sub['granule_number'], bins=bin_partition, weights=weights, color=barcolor, rwidth=.8, density=False)
+        a[i].hist(sub['granule_number'],
+                  bins=bin_partition,
+                  color=barcolor,
+                  rwidth=.8,
+                  density=True)
 
         if i == 1:
             a[i].set_xlabel('# granules / chloroplast')
@@ -107,8 +115,11 @@ if __name__ == '__main__':
     b = axs[1, :]
     for i, t in enumerate(sorted(granule_number.light.unique())):
         sub = pocket_number.loc[pocket_number['light'] == t]
-        weights = sub['pocket_number'] / sub['pocket_number'].sum()
-        b[i].hist(sub['pocket_number'], bins=bin_partition, weights=weights, color=barcolor, rwidth=.8, density=False)
+        b[i].hist(sub['pocket_number'],
+                  bins=bin_partition,
+                  color=barcolor,
+                  rwidth=.8,
+                  density=True)
 
         if i == 1:
             b[i].set_xlabel('# pockets / chloroplast')
@@ -121,7 +132,7 @@ if __name__ == '__main__':
                  sub['granules_in_category'] / sub['granules_in_category'].sum(),
                  color=barcolor,
                  align='edge',
-                 width=-3)
+                 width=-3)  # negative to align on the right edge
 
         if i == 1:
             c[i].set_xlabel("# granules in cluster category")
@@ -139,4 +150,4 @@ if __name__ == '__main__':
             ax.set_ylabel('Frequency')
 
     fig.tight_layout(h_pad=3)
-    fig.savefig(project_path / f'cluster_size_{genotype}_N{night}h_by{binsize}_cutoff{cutoff}_max{bin_max}.pdf')
+    fig.savefig(project_path / f'cluster_size_{genotype}_N{night}h_by{binsize}_cutoff{cutoff}_max{bin_max}_test.pdf')
