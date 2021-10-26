@@ -45,12 +45,11 @@ if __name__ == '__main__':
     clusters = clusters.loc[clusters['light'].isin(time_points)]
 
     # Derive the granule number
-    granule_number = clusters.groupby(grouper)[
-        ['cluster_size']].sum()
+    granule_number = clusters.groupby(grouper)[['cluster_size']].sum()
     granule_number.columns = ['granule_number']
     granule_number = granule_number.reset_index().sort_values(by=['night', 'light'], ascending=True)
-    granule_number.to_excel(
-        project_path / 'granule_number.xlsx')
+    granule_number.to_excel(project_path / 'granule_number.xlsx')
+
     mean_granule_number = granule_number.groupby('genotype night light replicate'.split(' ')).mean()[['granule_number']]
     n_chloroplasts_weights = granule_number.groupby('genotype night light replicate'.split(' ')).count()['chloroplast']
     mean_granule_number['weight'] = n_chloroplasts_weights
@@ -66,17 +65,16 @@ if __name__ == '__main__':
                      .count())
     pocket_number.columns = ['pocket_number']
     pocket_number = pocket_number.reset_index().sort_values(by=['night', 'light'], ascending=True)
-    pocket_number.to_excel(
-        project_path / 'pocket_number.xlsx')
+    pocket_number.to_excel(project_path / 'pocket_number.xlsx')
     pocket_number.groupby('genotype night light replicate'.split(' ')).mean().to_excel(
         project_path / 'mean_pocket_number.xlsx')
+
     mean_pocket_number = pocket_number.groupby('genotype night light replicate'.split(' ')).mean()[['pocket_number']]
     n_chloroplasts_weights = granule_number.groupby('genotype night light replicate'.split(' ')).count()['chloroplast']
     mean_pocket_number['weight'] = n_chloroplasts_weights
     mean_pocket_number = mean_pocket_number.groupby('genotype night light'.split(' ')).apply(
         lambda x: np.average(x['pocket_number'],
-                             weights=x[
-                                 'weight']))
+                             weights=x['weight']))
     mean_pocket_number.name = 'w_avg_pocket_number'
 
     pocket_granules_mean_weighted = pd.concat([mean_granule_number, mean_pocket_number], axis=1)
@@ -129,7 +127,7 @@ if __name__ == '__main__':
         sub = df_bins.loc[df_bins['light'] == t]
 
         c[i].bar(sub['binned'],
-                 sub['granules_in_category'] / sub['granules_in_category'].sum(),
+                 sub['granules_in_category'] / sub['granules_in_category'].sum(),  # normalise
                  color=barcolor,
                  align='edge',
                  width=-3)  # negative to align on the right edge
@@ -150,4 +148,4 @@ if __name__ == '__main__':
             ax.set_ylabel('Frequency')
 
     fig.tight_layout(h_pad=3)
-    fig.savefig(project_path / f'cluster_size_{genotype}_N{night}h_by{binsize}_cutoff{cutoff}_max{bin_max}_test.pdf')
+    fig.savefig(project_path / f'cluster_size_{genotype}_N{night}h_by{binsize}_cutoff{cutoff}_max{bin_max}.pdf')
