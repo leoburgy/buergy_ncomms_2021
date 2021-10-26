@@ -16,18 +16,18 @@ plt.rc('lines', linewidth=8)
 
 matplotlib.rcParams['axes.linewidth'] = .5
 
-project_path = Path('/Users/leoburgy/Dropbox/buergy_ncomms/data/fig2/A-C')
-genotype = 'WT'
+project_path = Path('/Users/leoburgy/Dropbox/buergy_ncomms/data/sfig4/')
+genotype = 'ss4'
 night = 16
 time_points = [.25, .5, 8]
 
 # Define parameters for histograms
-bin_max = 56
-binsize = 4
+bin_max = 16
+binsize = 1
 cutoff = 0
 barcolor = '#2250d9'
 bin_partition = np.arange(0, bin_max + 1, binsize)
-tick_partition = np.arange(0, bin_max + 1, bin_max // (bin_max / (2 * binsize)))
+tick_partition = np.arange(0, bin_max + 1, bin_max // (bin_max / (4 * binsize)))
 
 grouper = 'genotype night light replicate chloroplast'.split(' ')
 
@@ -41,7 +41,12 @@ def pretty_time(time):
 
 if __name__ == '__main__':
 
-    clusters = pd.read_excel(project_path / 'clusters_cleaned.xlsx')
+    clusters = pd.read_excel(project_path / 'clusters_ss4.xlsx')
+    clusters = clusters.fillna(method='ffill')
+
+    clusters[['night', 'hour', 'minute']] = clusters.timepoint.str.extract(r'N(\d+)D(\d\d)(\d\d)')
+    clusters['light'] = clusters['hour'].astype(int) + clusters['minute'].astype(int) / 60
+    clusters = clusters[['genotype', 'night', 'light', 'replicate', 'chloroplast', 'cluster_size']]
     clusters = clusters.loc[clusters['light'].isin(time_points)]
 
     # Derive the granule number
