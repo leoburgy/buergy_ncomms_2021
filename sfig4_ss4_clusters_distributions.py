@@ -19,7 +19,7 @@ matplotlib.rcParams['axes.linewidth'] = .5
 project_path = Path('/Users/leoburgy/Dropbox/buergy_ncomms/data/sfig4/')
 genotype = 'ss4'
 night = 16
-time_points = [.25, .5, 8]
+time_points = [0, .25, .5, 8]
 
 # Define parameters for histograms
 bin_max = 16
