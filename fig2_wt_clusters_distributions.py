@@ -5,6 +5,10 @@ import numpy as np
 import pandas as pd
 from matplotlib import pyplot as plt
 
+import logging
+
+logging.basicConfig(level=logging.INFO)
+
 font = {'family': 'sans-serif',
         'sans-serif': 'Helvetica Neue',
         'weight': 'light',
@@ -91,6 +95,7 @@ if __name__ == '__main__':
                                labels=bin_partition[1:], include_lowest=True)
 
     df_bins = grouped.groupby('genotype night light binned'.split(' ')).sum()['granules_in_category'].reset_index()
+    df_bins.to_excel(project_path / f'categories.xlsx')
 
     # Plot distributions of each parameters
     fig, axs = plt.subplots(nrows=3, ncols=len(time_points), figsize=(5, 3.5), sharey=False)
@@ -98,6 +103,7 @@ if __name__ == '__main__':
     a = axs[0, :]
     for i, t in enumerate(sorted(granule_number.light.unique())):
         sub = granule_number.loc[granule_number['light'] == t]
+        logging.info(f"Partition granule_number {np.histogram(sub['granule_number'], bins=bin_partition)}")
         a[i].hist(sub['granule_number'],
                   bins=bin_partition,
                   color=barcolor,
@@ -113,6 +119,7 @@ if __name__ == '__main__':
     b = axs[1, :]
     for i, t in enumerate(sorted(granule_number.light.unique())):
         sub = pocket_number.loc[pocket_number['light'] == t]
+        logging.info(f"Partition pocket number {np.histogram(sub['pocket_number']/sub['pocket_number'].sum()/binsize, bins=bin_partition)}")
         b[i].hist(sub['pocket_number'],
                   bins=bin_partition,
                   color=barcolor,
@@ -125,7 +132,7 @@ if __name__ == '__main__':
     c = axs[2, :]
     for i, t in enumerate(sorted(df_bins.light.unique())):
         sub = df_bins.loc[df_bins['light'] == t]
-
+        logging.info(f"Partition categories {sub['granules_in_category'] / sub['granules_in_category'].sum()}")
         c[i].bar(sub['binned'],
                  sub['granules_in_category'] / sub['granules_in_category'].sum() / binsize,  # normalise
                  color=barcolor,
