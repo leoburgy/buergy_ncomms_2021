@@ -8,10 +8,7 @@ from matplotlib import pyplot as plt
 from clusters.clusters import pretty_time, pocket_score, clusters_categorise
 from clusters.clusters import GROUPER_CHLP, GROUPER_CLUSTERS
 
-font = {'family': 'sans-serif',
-        'sans-serif': 'Helvetica Neue',
-        'weight': 'light',
-        'size': 6}
+from settings import font
 
 plt.rc('font', **font)
 plt.rc('pdf', fonttype=42)
