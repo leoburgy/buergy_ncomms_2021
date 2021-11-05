@@ -24,13 +24,16 @@ time_points = [0, .25, .5, 8]
 # Define parameters for histograms
 bin_max = 16
 binsize = 1
-cutoff = 0
+cutoff = 1
 barcolor = '#2250d9'
 bin_partition = np.arange(0, bin_max + 1, binsize)
 tick_partition = np.arange(0, bin_max + 1, bin_max // (bin_max / (4 * binsize)))
 
 grouper = 'genotype night light replicate chloroplast'.split(' ')
 
+
+def pocket_score(x):
+    return x.sum() if (len(x) == 1) & (x['cluster_size'] == 0).all() else x.count()
 
 def pretty_time(time):
     if time < 1:
@@ -67,7 +70,7 @@ if __name__ == '__main__':
     # Derive the pocket number
     pocket_number = (clusters
                      .groupby(grouper)[['cluster_size']]
-                     .count())
+                     .apply(lambda x: x.sum() if (len(x) == 1) & (x['cluster_size'] == 0).all() else x.count()))
     pocket_number.columns = ['pocket_number']
     pocket_number = pocket_number.reset_index().sort_values(by=['night', 'light'], ascending=True)
     pocket_number.to_excel(project_path / 'pocket_number.xlsx')
@@ -91,9 +94,8 @@ if __name__ == '__main__':
     clusters['granules_in_category'] = clusters['cluster_size']
     grouped = clusters.groupby('genotype night light cluster_size'.split(' ')).sum()[['granules_in_category']]
     grouped = grouped.reset_index()
-    grouped = grouped.loc[grouped['cluster_size'] > cutoff]
-    grouped['binned'] = pd.cut(grouped['cluster_size'], bin_partition,
-                               labels=bin_partition[1:], include_lowest=True)
+    grouped = grouped.loc[grouped['cluster_size'] >= cutoff]
+    grouped['binned'] = pd.cut(grouped['cluster_size'], bin_partition, labels=bin_partition[1:], include_lowest=True)
 
     df_bins = grouped.groupby('genotype night light binned'.split(' ')).sum()['granules_in_category'].reset_index()
 
@@ -129,13 +131,13 @@ if __name__ == '__main__':
 
     c = axs[2, :]
     for i, t in enumerate(sorted(df_bins.light.unique())):
-        sub = df_bins.loc[df_bins['light'] == t]
+        sub = grouped.loc[grouped['light'] == t]
 
-        c[i].bar(sub['binned'],
+        c[i].bar(sub['cluster_size'],
                  sub['granules_in_category'] / sub['granules_in_category'].sum() / binsize,  # normalise
                  color=barcolor,
-                 align='edge',
-                 width=-3)  # negative to align on the right edge
+                 align='center',
+                 width=-1)  # negative to align on the right edge
 
         if i == 1:
             c[i].set_xlabel("# granules in cluster category")
