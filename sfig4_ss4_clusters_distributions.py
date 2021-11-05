@@ -5,8 +5,15 @@ import numpy as np
 import pandas as pd
 from matplotlib import pyplot as plt
 
-from clusters.clusters import pretty_time, pocket_score, clusters_categorise
-from clusters.clusters import GROUPER_CHLP, GROUPER_CLUSTERS
+from clusters.clusters import (pretty_time,
+                               clusters_categorise,
+                               import_cluster_excel,
+                               derive_pocket_number,
+                               derive_granule_number,
+                               weighted_average,
+                               )
+
+from clusters.clusters import GROUPER_CHLP, GROUPER_CLUSTERS, GROUPER_REPLICATES, GROUPER_CONDITIONS
 
 from settings import font
 
@@ -31,51 +38,26 @@ tick_partition = np.arange(0, bin_max + 1, bin_max // (bin_max / (4 * binsize)))
 
 
 def main():
-    clusters = pd.read_excel(project_path / 'clusters_ss4.xlsx')
-    clusters = clusters.fillna(method='ffill')
+    clusters = import_cluster_excel(project_path / 'clusters_ss4.xlsx', day_points=[0, .25, .5, 8])
 
-    clusters[['night', 'hour', 'minute']] = clusters.timepoint.str.extract(r'N(\d+)D(\d\d)(\d\d)')
-    clusters['light'] = clusters['hour'].astype(int) + clusters['minute'].astype(int) / 60
-    clusters = clusters[['genotype', 'night', 'light', 'replicate', 'chloroplast', 'cluster_size']]
-    clusters = clusters.loc[clusters['light'].isin(time_points)]
+    granule_number = derive_granule_number(clusters, GROUPER_CHLP)
+    granule_number.to_excel(project_path / 'granules_chloroplasts.xlsx')
 
-    # Derive the granule number
-    granule_number = clusters.groupby(GROUPER_CHLP)[['cluster_size']].sum()
-    granule_number.columns = ['granule_number']
-    granule_number = granule_number.reset_index().sort_values(by=['night', 'light'], ascending=True)
-    granule_number.to_excel(project_path / 'granule_number.xlsx')
-
-    mean_granule_number = granule_number.groupby('genotype night light replicate'.split(' ')).mean()[['granule_number']]
-    n_chloroplasts_weights = granule_number.groupby('genotype night light replicate'.split(' ')).count()['chloroplast']
-    mean_granule_number['weight'] = n_chloroplasts_weights
-    mean_granule_number = mean_granule_number.groupby('genotype night light'.split(' ')).apply(
-        lambda x: np.average(x['granule_number'],
-                             weights=x['weight']))
-    mean_granule_number.name = 'w_avg_granule_number'
-    mean_granule_number.to_excel(project_path / 'mean_granule_number.xlsx')
+    # Weight between replicates
+    mean_granule_number = granule_number.groupby(GROUPER_REPLICATES).mean()[['granule_number']]
+    granule_number_weighted = weighted_average(mean_granule_number, to_average_column='granule_number',
+                                               weight_column='chloroplast')
 
     # Derive the pocket number
-    pocket_number = (clusters
-                     .groupby(GROUPER_CHLP)[['cluster_size']]
-                     .apply(pocket_score))
-    pocket_number.columns = ['pocket_number']
-    pocket_number = pocket_number.reset_index().sort_values(by=['night', 'light'], ascending=True)
-    pocket_number.to_excel(project_path / 'pocket_number.xlsx')
-    pocket_number.groupby('genotype night light replicate'.split(' ')).mean().to_excel(
-        project_path / 'mean_pocket_number.xlsx')
+    pocket_number = derive_pocket_number(clusters, GROUPER_CHLP)
+    pocket_number_weighted = weighted_average(pocket_number, to_average_column='pocket_number',
+                                              weight_column='chloroplast')
 
-    mean_pocket_number = pocket_number.groupby('genotype night light replicate'.split(' ')).mean()[['pocket_number']]
-    n_chloroplasts_weights = granule_number.groupby('genotype night light replicate'.split(' ')).count()['chloroplast']
-    mean_pocket_number['weight'] = n_chloroplasts_weights
-    mean_pocket_number = mean_pocket_number.groupby('genotype night light'.split(' ')).apply(
-        lambda x: np.average(x['pocket_number'],
-                             weights=x['weight']))
-    mean_pocket_number.name = 'w_avg_pocket_number'
-
-    pocket_granules_mean_weighted = pd.concat([mean_granule_number, mean_pocket_number], axis=1)
+    pocket_granules_mean_weighted = pd.concat([granule_number_weighted, pocket_number_weighted], axis=1)
     pocket_granules_mean_weighted.to_excel(project_path / f'mean_pocket_granule_number_{genotype}.xlsx')
 
-    n_chloroplasts_weights.to_excel(project_path / f'chloroplasts_examined_{genotype}.xlsx')
+    chloroplast_number = clusters.groupby(GROUPER_REPLICATES).count()['chloroplast']
+    chloroplast_number.to_excel(project_path / f'chloroplasts_examined_{genotype}.xlsx')
 
     # Refactor weighting of cluster sizes
     grouped_category = clusters_categorise(df=clusters, grouper=GROUPER_CLUSTERS, bin_partition=bin_partition)
@@ -118,7 +100,7 @@ def main():
                  sub['granules_in_category'] / sub['granules_in_category'].sum() / binsize,  # normalise
                  color=barcolor,
                  align='edge',
-                 width=.8)  # negative to align on the right edge
+                 width=.8)
 
         if i == 1:
             c[i].set_xlabel("# granules in cluster category")
