@@ -39,6 +39,15 @@ def pocket_score(x):
         return x.count()
 
 
+def clusters_categorise(df, grouper, bin_partition):
+    _df = df.copy()
+    _df['granules_in_category'] = _df['cluster_size']
+    grouped = _df.groupby(grouper).sum()[
+        ['granules_in_category']].reset_index()
+    grouped['binned'] = pd.cut(grouped['cluster_size'], bin_partition, labels=bin_partition[:-1], right=False)
+    return grouped
+
+
 def pretty_time(time):
     if time < 1:
         return f"+ {int(60 * time)} min"
@@ -60,10 +69,8 @@ assert list(test_granule_number) == [0, 16, 2, 4]
 test_pocket_number = test_df.groupby(grouper).apply(pocket_score)['cluster_size']
 assert list(test_pocket_number) == [0, 2, 1, 2]
 
-test_df['granules_in_category'] = test_df['cluster_size']
-test_grouped = test_df.groupby('genotype night light cluster_size'.split(' ')).sum()[
-    ['granules_in_category']].reset_index()
-test_grouped['binned'] = pd.cut(test_grouped['cluster_size'], bin_partition, labels=bin_partition[:-1], right=False)
+categories_grouper = 'genotype night light cluster_size'.split(' ')
+test_grouped = clusters_categorise(test_df, grouper=categories_grouper, bin_partition=bin_partition)
 
 assert list(test_grouped['binned']) == [0, 2, 8, 1, 3]
 assert list(test_grouped['granules_in_category']) == [0, 2, 16, 1, 3]
@@ -74,10 +81,6 @@ plt.bar(test_sub['binned'], test_sub['granules_in_category'] / test_sub['granule
 plt.xticks(bin_partition)
 plt.xlim(0, bin_max)
 plt.savefig('/Users/leoburgy/Desktop/test.pdf')
-
-test_grouped = test_grouped.loc[test_grouped['cluster_size'] >= cutoff]
-# test_df_bins = test_grouped.groupby('genotype night light binned'.split(' ')).sum()[
-#     'granules_in_category'].reset_index()
 
 if __name__ == '__main__':
 
@@ -128,14 +131,7 @@ if __name__ == '__main__':
     n_chloroplasts_weights.to_excel(project_path / f'chloroplasts_examined_{genotype}.xlsx')
 
     # Refactor weighting of cluster sizes
-    clusters['granules_in_category'] = clusters['cluster_size']
-    grouped = clusters.groupby('genotype night light cluster_size'.split(' ')).sum()[['granules_in_category']]
-    grouped = grouped.reset_index()
-    grouped = grouped.loc[grouped['cluster_size'] >= cutoff]
-    grouped['binned'] = pd.cut(grouped['cluster_size'], bin_partition, labels=bin_partition[1:], right=False,
-                               include_lowest=True)
-
-    df_bins = grouped.groupby('genotype night light binned'.split(' ')).sum()['granules_in_category'].reset_index()
+    grouped_category = clusters_categorise(df=clusters, grouper=categories_grouper, bin_partition=bin_partition)
 
     # Plot distributions of each parameters
     fig, axs = plt.subplots(nrows=3, ncols=len(time_points), figsize=(5, 3.5), sharey=False)
@@ -168,14 +164,14 @@ if __name__ == '__main__':
             b[i].set_xlabel('# pockets / chloroplast')
 
     c = axs[2, :]
-    for i, t in enumerate(sorted(df_bins.light.unique())):
-        sub = grouped.loc[grouped['light'] == t]
+    for i, t in enumerate(sorted(grouped_category.light.unique())):
+        sub = grouped_category.loc[grouped_category['light'] == t]
 
         c[i].bar(sub['cluster_size'],
                  sub['granules_in_category'] / sub['granules_in_category'].sum() / binsize,  # normalise
                  color=barcolor,
-                 align='center',
-                 width=1)  # negative to align on the right edge
+                 align='edge',
+                 width=.8)  # negative to align on the right edge
 
         if i == 1:
             c[i].set_xlabel("# granules in cluster category")
