@@ -46,6 +46,39 @@ def pretty_time(time):
         return f"+ {int(time)} h"
 
 
+test_df = pd.DataFrame({'genotype': ['wt', 'wt', 'wt', 'wt', 'wt', 'wt'],
+                        'night': [16, 16, 16, 16, 16, 16],
+                        'light': [0, 0, 0, 0, 8, 8],
+                        'replicate': [1, 1, 1, 2, 1, 1],
+                        'stack': [1, 1, 1, 1, 2, 2],
+                        'chloroplast': [1, 2, 2, 1, 1, 1],
+                        'cluster_size': [0, 8, 8, 2, 3, 1]})
+
+test_granule_number = test_df.groupby(grouper).sum()['cluster_size']
+assert list(test_granule_number) == [0, 16, 2, 4]
+
+test_pocket_number = test_df.groupby(grouper).apply(pocket_score)['cluster_size']
+assert list(test_pocket_number) == [0, 2, 1, 2]
+
+test_df['granules_in_category'] = test_df['cluster_size']
+test_grouped = test_df.groupby('genotype night light cluster_size'.split(' ')).sum()[
+    ['granules_in_category']].reset_index()
+test_grouped['binned'] = pd.cut(test_grouped['cluster_size'], bin_partition, labels=bin_partition[:-1], right=False)
+
+assert list(test_grouped['binned']) == [0, 2, 8, 1, 3]
+assert list(test_grouped['granules_in_category']) == [0, 2, 16, 1, 3]
+
+test_sub = test_grouped.loc[test_grouped['light'] == 8]
+plt.bar(test_sub['binned'], test_sub['granules_in_category'] / test_sub['granules_in_category'].sum() / binsize,
+        color=barcolor, align='center', width=1)
+plt.xticks(bin_partition)
+plt.xlim(0, bin_max)
+plt.savefig('/Users/leoburgy/Desktop/test.pdf')
+
+test_grouped = test_grouped.loc[test_grouped['cluster_size'] >= cutoff]
+# test_df_bins = test_grouped.groupby('genotype night light binned'.split(' ')).sum()[
+#     'granules_in_category'].reset_index()
+
 if __name__ == '__main__':
 
     clusters = pd.read_excel(project_path / 'clusters_ss4.xlsx')
