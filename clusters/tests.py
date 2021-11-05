@@ -34,6 +34,11 @@ def test_derive_chloroplast_number():
     assert list(res) == [2, 1, 1]
 
 
+def test_derive_cluster_mean():
+    cluster_mean = derive_cluster_mean(test_df, GROUPER_CONDITIONS)
+    assert list(cluster_mean) == [np.mean([0, 8, 8, 2]), np.mean([3, 1])]
+
+
 def test_summary():
     chloroplasts_examined = derive_chloroplasts_examined(test_df, GROUPER_CHLP, GROUPER_REPLICATES)
     granule_number = derive_granule_number(test_df, GROUPER_CHLP)

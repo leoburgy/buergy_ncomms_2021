@@ -32,6 +32,12 @@ def import_cluster_excel(path, day_points):
     return clusters
 
 
+def derive_cluster_mean(data, grouper):
+    res = data.groupby(grouper).mean().round(1)['cluster_size']
+    res.name = 'avg_cluster_size'
+    return res
+
+
 def derive_chloroplasts_examined(data, grouper_chlp, grouper_replicates):
     res = data.groupby(grouper_chlp).count()['cluster_size'].groupby(grouper_replicates).count()
     res.name = 'chloroplasts_examined'
