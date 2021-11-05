@@ -33,7 +33,11 @@ grouper = 'genotype night light replicate chloroplast'.split(' ')
 
 
 def pocket_score(x):
-    return x.sum() if (len(x) == 1) & (x['cluster_size'] == 0).all() else x.count()
+    if (len(x) == 1) & (x['cluster_size'] == 0).all():
+        return x.sum()
+    else:
+        return x.count()
+
 
 def pretty_time(time):
     if time < 1:
@@ -70,7 +74,7 @@ if __name__ == '__main__':
     # Derive the pocket number
     pocket_number = (clusters
                      .groupby(grouper)[['cluster_size']]
-                     .apply(lambda x: x.sum() if (len(x) == 1) & (x['cluster_size'] == 0).all() else x.count()))
+                     .apply(pocket_score))
     pocket_number.columns = ['pocket_number']
     pocket_number = pocket_number.reset_index().sort_values(by=['night', 'light'], ascending=True)
     pocket_number.to_excel(project_path / 'pocket_number.xlsx')
@@ -95,7 +99,8 @@ if __name__ == '__main__':
     grouped = clusters.groupby('genotype night light cluster_size'.split(' ')).sum()[['granules_in_category']]
     grouped = grouped.reset_index()
     grouped = grouped.loc[grouped['cluster_size'] >= cutoff]
-    grouped['binned'] = pd.cut(grouped['cluster_size'], bin_partition, labels=bin_partition[1:], include_lowest=True)
+    grouped['binned'] = pd.cut(grouped['cluster_size'], bin_partition, labels=bin_partition[1:], right=False,
+                               include_lowest=True)
 
     df_bins = grouped.groupby('genotype night light binned'.split(' ')).sum()['granules_in_category'].reset_index()
 
@@ -137,7 +142,7 @@ if __name__ == '__main__':
                  sub['granules_in_category'] / sub['granules_in_category'].sum() / binsize,  # normalise
                  color=barcolor,
                  align='center',
-                 width=-1)  # negative to align on the right edge
+                 width=1)  # negative to align on the right edge
 
         if i == 1:
             c[i].set_xlabel("# granules in cluster category")
