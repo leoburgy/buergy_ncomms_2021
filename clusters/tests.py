@@ -1,17 +1,23 @@
 import pandas as pd
 import numpy as np
 from matplotlib import pyplot as plt
-from clusters import GROUPER_CHLP, GROUPER_CLUSTERS
-from clusters import pocket_score, clusters_categorise
+from clusters import (GROUPER_CHLP,
+                      GROUPER_CLUSTERS,
+                      GROUPER_REPLICATES,
+                      derive_pocket_number,
+                      derive_chloroplasts_examined,
+                      pocket_score,
+                      clusters_categorise,
+                      summary,
+                      derive_granule_number)
 
 # Define parameters for histograms
 bin_max = 16
-binsize = 1
+bin_size = 4
 cutoff = 1
 barcolor = '#2250d9'
-bin_partition = np.arange(0, bin_max + 1, binsize)
-tick_partition = np.arange(0, bin_max + 1, bin_max // (bin_max / (4 * binsize)))
-
+bin_partition = np.arange(0, bin_max + 1, bin_size)
+tick_partition = np.arange(0, bin_max + 1, bin_max // (bin_max / (4 * bin_size)))
 
 test_df = pd.DataFrame({'genotype': ['wt', 'wt', 'wt', 'wt', 'wt', 'wt'],
                         'night': [16, 16, 16, 16, 16, 16],
@@ -21,20 +27,42 @@ test_df = pd.DataFrame({'genotype': ['wt', 'wt', 'wt', 'wt', 'wt', 'wt'],
                         'chloroplast': [1, 2, 2, 1, 1, 1],
                         'cluster_size': [0, 8, 8, 2, 3, 1]})
 
-test_granule_number = test_df.groupby(GROUPER_CHLP).sum()['cluster_size']
-assert list(test_granule_number) == [0, 16, 2, 4]
 
-test_pocket_number = test_df.groupby(GROUPER_CHLP).apply(pocket_score)['cluster_size']
-assert list(test_pocket_number) == [0, 2, 1, 2]
+def test_derive_chloroplast_number():
+    res = derive_chloroplasts_examined(data=test_df, grouper_chlp=GROUPER_CHLP,
+                                       grouper_replicates=GROUPER_REPLICATES)
+    assert list(res) == [2, 1, 1]
 
-test_grouped = clusters_categorise(test_df, grouper=GROUPER_CLUSTERS, bin_partition=bin_partition)
 
-assert list(test_grouped['binned']) == [0, 2, 8, 1, 3]
-assert list(test_grouped['granules_in_category']) == [0, 2, 16, 1, 3]
+def test_summary():
+    chloroplasts_examined = derive_chloroplasts_examined(test_df, GROUPER_CHLP, GROUPER_REPLICATES)
+    granule_number = derive_granule_number(test_df, GROUPER_CHLP)
+    pocket_number = derive_pocket_number(test_df, GROUPER_CHLP)
+    res = summary(granule_number, pocket_number, chloroplasts_examined)
 
-test_sub = test_grouped.loc[test_grouped['light'] == 8]
-plt.bar(test_sub['binned'], test_sub['granules_in_category'] / test_sub['granules_in_category'].sum() / binsize,
-        color=barcolor, align='center', width=1)
-plt.xticks(bin_partition)
-plt.xlim(0, bin_max)
-plt.savefig('/Users/leoburgy/Desktop/test.pdf')
+    assert list(chloroplasts_examined == [2, 1, 1])
+    assert list(res['w_avg_granule_number'] == [6., 4.])
+    assert list(res['w_avg_pocket_number'] == [1., 2.])
+
+
+def test_granule_number():
+    granule_number = test_df.groupby(GROUPER_CHLP).sum()['cluster_size']
+    assert list(granule_number) == [0, 16, 2, 4]
+
+
+def test_pocket_number():
+    pocket_number = test_df.groupby(GROUPER_CHLP).apply(pocket_score)['cluster_size']
+    assert list(pocket_number) == [0, 2, 1, 2]
+
+
+def test_clusters_categorise():
+    test_grouped = clusters_categorise(test_df, grouper=GROUPER_CLUSTERS, bin_partition=bin_partition)
+    assert list(test_grouped['binned']) == [0, 2, 8, 1, 3]
+    assert list(test_grouped['granules_in_category']) == [0, 2, 16, 1, 3]
+
+    test_sub = test_grouped.loc[test_grouped['light'] == 0]
+    plt.bar(test_sub['binned'], test_sub['granules_in_category'] / test_sub['granules_in_category'].sum() / bin_size,
+            color=barcolor, align='edge', width=.8 * bin_size)
+    plt.xticks(bin_partition)
+    plt.xlim(0, bin_max)
+    plt.savefig('/Users/leoburgy/Desktop/test.pdf')
