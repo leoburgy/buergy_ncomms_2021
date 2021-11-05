@@ -5,15 +5,17 @@ import numpy as np
 import pandas as pd
 from matplotlib import pyplot as plt
 
-from clusters.clusters import (pretty_time,
-                               clusters_categorise,
-                               import_cluster_excel,
-                               derive_pocket_number,
-                               derive_granule_number,
-                               weighted_average,
-                               )
+from clusters.clusters import (
+    clusters_categorise,
+    import_cluster_excel,
+    derive_pocket_number,
+    derive_granule_number,
+    weighted_average,
+    plot_histogram,
+    category_plot,
+)
 
-from clusters.clusters import GROUPER_CHLP, GROUPER_CLUSTERS, GROUPER_REPLICATES, GROUPER_CONDITIONS
+from clusters.clusters import GROUPER_CHLP, GROUPER_CLUSTERS, GROUPER_REPLICATES
 
 from settings import font
 
@@ -23,41 +25,43 @@ plt.rc('lines', linewidth=8)
 
 matplotlib.rcParams['axes.linewidth'] = .5
 
-project_path = Path('/Users/leoburgy/Dropbox/buergy_ncomms/data/sfig4/')
-genotype = 'ss4'
-night = 16
-time_points = [0, .25, .5, 8]
-
 # Define parameters for histograms
 bin_max = 16
-binsize = 1
+bin_size = 1
 cutoff = 1
-barcolor = '#2250d9'
-bin_partition = np.arange(0, bin_max + 1, binsize)
-tick_partition = np.arange(0, bin_max + 1, bin_max // (bin_max / (4 * binsize)))
+bar_color = '#2250d9'
+bin_partition = np.arange(0, bin_max + 1, bin_size)
+tick_partition = np.arange(0, bin_max + 1, bin_max // (bin_max / (4 * bin_size)))
 
 
 def main():
-    clusters = import_cluster_excel(project_path / 'clusters_ss4.xlsx', day_points=[0, .25, .5, 8])
+    project_path = Path('/Users/leoburgy/Dropbox/buergy_ncomms/data/sfig4/')
+    genotype = 'ss4'
+    night = 16
+    time_points = [0, .25, .5, 8]
+
+    clusters = import_cluster_excel(project_path / f'clusters_{genotype}.xlsx', day_points=[0, .25, .5, 8])
+
+    chloroplast_number = clusters.groupby(GROUPER_REPLICATES).count()['chloroplast']
+    chloroplast_number.to_excel(project_path / f'chloroplasts_examined_{genotype}.xlsx')
 
     granule_number = derive_granule_number(clusters, GROUPER_CHLP)
     granule_number.to_excel(project_path / 'granules_chloroplasts.xlsx')
 
     # Weight between replicates
     mean_granule_number = granule_number.groupby(GROUPER_REPLICATES).mean()[['granule_number']]
-    granule_number_weighted = weighted_average(mean_granule_number, to_average_column='granule_number',
-                                               weight_column='chloroplast')
+    mean_granule_number['weight'] = chloroplast_number
+    granule_number_weighted = weighted_average(mean_granule_number, to_average_column='granule_number')
 
     # Derive the pocket number
     pocket_number = derive_pocket_number(clusters, GROUPER_CHLP)
-    pocket_number_weighted = weighted_average(pocket_number, to_average_column='pocket_number',
-                                              weight_column='chloroplast')
+    mean_pocket_number = pocket_number.groupby(GROUPER_REPLICATES).mean()[['pocket_number']]
+    mean_pocket_number['weight'] = chloroplast_number
+
+    pocket_number_weighted = weighted_average(mean_pocket_number, to_average_column='pocket_number')
 
     pocket_granules_mean_weighted = pd.concat([granule_number_weighted, pocket_number_weighted], axis=1)
     pocket_granules_mean_weighted.to_excel(project_path / f'mean_pocket_granule_number_{genotype}.xlsx')
-
-    chloroplast_number = clusters.groupby(GROUPER_REPLICATES).count()['chloroplast']
-    chloroplast_number.to_excel(project_path / f'chloroplasts_examined_{genotype}.xlsx')
 
     # Refactor weighting of cluster sizes
     grouped_category = clusters_categorise(df=clusters, grouper=GROUPER_CLUSTERS, bin_partition=bin_partition)
