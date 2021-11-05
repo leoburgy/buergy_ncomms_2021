@@ -13,12 +13,9 @@ from clusters import (GROUPER_CHLP,
                       derive_granule_number, GROUPER_CONDITIONS)
 
 # Define parameters for histograms
-bin_max = 16
-bin_size = 4
 cutoff = 1
 barcolor = '#2250d9'
-bin_partition = np.arange(0, bin_max + 1, bin_size)
-tick_partition = np.arange(0, bin_max + 1, bin_max // (bin_max / (4 * bin_size)))
+bin_max = 16
 
 test_df = pd.DataFrame({'genotype': ['wt', 'wt', 'wt', 'wt', 'wt', 'wt'],
                         'night': [16, 16, 16, 16, 16, 16],
@@ -61,14 +58,30 @@ def test_pocket_number():
     assert list(pocket_number) == [0, 2, 1, 2]
 
 
-def test_clusters_categorise():
+def test_clusters_categorise_bin_size_1():
+    bin_size = 1
+    bin_partition = np.arange(0, bin_max + 1, bin_size)
     test_grouped = clusters_categorise(test_df, grouper=GROUPER_CLUSTERS, bin_partition=bin_partition)
-    assert list(test_grouped['binned']) == [0, 2, 8, 1, 3]
-    assert list(test_grouped['granules_in_category']) == [0, 2, 16, 1, 3]
+    assert list(test_grouped['granules_in_category']) == [0, 0, 2, 0, 0, 0, 0, 0, 16, 0, 0, 0, 0, 0, 0, 0,
+                                                          0, 1, 0, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
 
     test_sub = test_grouped.loc[test_grouped['light'] == 0]
     plt.bar(test_sub['binned'], test_sub['granules_in_category'] / test_sub['granules_in_category'].sum() / bin_size,
             color=barcolor, align='edge', width=.8 * bin_size)
     plt.xticks(bin_partition)
     plt.xlim(0, bin_max)
-    plt.savefig('/Users/leoburgy/Desktop/test.pdf')
+    plt.savefig(f'/Users/leoburgy/Desktop/test_{bin_size}.pdf')
+
+
+def test_clusters_categorise_bin_size_4():
+    bin_size = 4
+    bin_partition = np.arange(0, bin_max + 1, bin_size)
+    test_grouped = clusters_categorise(test_df, grouper=GROUPER_CLUSTERS, bin_partition=bin_partition)
+    assert list(test_grouped['granules_in_category']) == [2, 0, 16, 0, 4, 0, 0, 0]
+
+    test_sub = test_grouped.loc[test_grouped['light'] == 0]
+    plt.bar(test_sub['binned'], test_sub['granules_in_category'] / test_sub['granules_in_category'].sum() / bin_size,
+            color=barcolor, align='edge', width=.8 * bin_size)
+    plt.xticks(bin_partition)
+    plt.xlim(0, bin_max)
+    plt.savefig(f'/Users/leoburgy/Desktop/test_{bin_size}.pdf')
