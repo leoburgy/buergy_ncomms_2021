@@ -6,10 +6,11 @@ from clusters import (GROUPER_CHLP,
                       GROUPER_REPLICATES,
                       derive_pocket_number,
                       derive_chloroplasts_examined,
+                      derive_cluster_mean,
                       pocket_score,
                       clusters_categorise,
                       summary,
-                      derive_granule_number)
+                      derive_granule_number, GROUPER_CONDITIONS)
 
 # Define parameters for histograms
 bin_max = 16

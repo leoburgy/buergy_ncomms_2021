@@ -7,6 +7,7 @@ from matplotlib import pyplot as plt
 from clusters.clusters import (
     clusters_categorise,
     import_cluster_excel,
+    derive_cluster_mean,
     derive_pocket_number,
     derive_granule_number,
     derive_chloroplasts_examined,
@@ -15,7 +16,7 @@ from clusters.clusters import (
     category_plot,
 )
 
-from clusters.clusters import GROUPER_CHLP, GROUPER_CLUSTERS, GROUPER_REPLICATES
+from clusters.clusters import GROUPER_CHLP, GROUPER_CLUSTERS, GROUPER_REPLICATES, GROUPER_CONDITIONS
 
 from settings import font
 
@@ -41,6 +42,7 @@ def main():
     time_points = [0, .25, .5, 8]
 
     clusters = import_cluster_excel(project_path / f'clusters_{genotype}.xlsx', day_points=[0, .25, .5, 8])
+    clusters_mean = derive_cluster_mean(clusters, GROUPER_CONDITIONS)
 
     chloroplasts_examined = derive_chloroplasts_examined(clusters, GROUPER_CHLP, GROUPER_REPLICATES)
     chloroplasts_examined.to_excel(project_path / f'chloroplasts_examined_{genotype}.xlsx')
@@ -50,6 +52,7 @@ def main():
     grouped_category = clusters_categorise(df=clusters, grouper=GROUPER_CLUSTERS, bin_partition=bin_partition)
 
     pocket_granules_mean_weighted = summary(granule_number, pocket_number, chloroplasts_examined)
+    clusters_mean.to_excel(project_path / f'mean_clusters_{genotype}.xlsx')
     pocket_granules_mean_weighted.to_excel(project_path / f'mean_pocket_granule_number_{genotype}.xlsx')
 
     # Plot distributions of each quantity
