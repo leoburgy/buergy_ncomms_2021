@@ -7,6 +7,10 @@ import pandas as pd
 from matplotlib import pyplot as plt
 
 from clusters.clusters import (
+    GROUPER_CHLP,
+    GROUPER_CLUSTERS,
+    GROUPER_REPLICATES,
+    GROUPER_CONDITIONS,
     clusters_categorise,
     derive_pocket_number,
     derive_granule_number,
@@ -14,9 +18,8 @@ from clusters.clusters import (
     summary,
     plot_histogram,
     category_plot,
+    derive_cluster_mean,
 )
-
-from clusters.clusters import GROUPER_CHLP, GROUPER_CLUSTERS, GROUPER_REPLICATES
 
 from settings import font
 
@@ -29,7 +32,7 @@ matplotlib.rcParams['axes.linewidth'] = .5
 
 
 def main():
-    project_path = Path('/Users/leoburgy/Dropbox/buergy_ncomms/data/fig2 copy/A-C')
+    project_path = Path('/Users/leoburgy/Dropbox/buergy_ncomms/data/fig2/A-C')
     genotype = 'WT'
     night = 16
     time_points = [.25, .5, 8]
@@ -50,13 +53,15 @@ def main():
     clusters = clusters.loc[clusters['night'].isin([night])]
 
     chloroplasts_examined = derive_chloroplasts_examined(clusters, GROUPER_CHLP, GROUPER_REPLICATES)
-    chloroplasts_examined.to_excel(project_path / f'chloroplasts_examined_{genotype}.xlsx')
+    clusters_mean = derive_cluster_mean(clusters, GROUPER_CONDITIONS)
 
     granule_number = derive_granule_number(clusters, GROUPER_CHLP)
     pocket_number = derive_pocket_number(clusters, GROUPER_CHLP)
     grouped_category = clusters_categorise(df=clusters, grouper=GROUPER_CLUSTERS, bin_partition=bin_partition)
-
     pocket_granules_mean_weighted = summary(granule_number, pocket_number, chloroplasts_examined)
+
+    clusters_mean.to_excel(project_path / f'mean_clusters_{genotype}.xlsx')
+    chloroplasts_examined.to_excel(project_path / f'chloroplasts_examined_{genotype}.xlsx')
     pocket_granules_mean_weighted.to_excel(project_path / f'mean_pocket_granule_number_{genotype}.xlsx')
 
     # Plot distributions of each parameters
