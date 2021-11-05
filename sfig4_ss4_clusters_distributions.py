@@ -5,6 +5,9 @@ import numpy as np
 import pandas as pd
 from matplotlib import pyplot as plt
 
+from clusters.clusters import pretty_time, pocket_score, clusters_categorise
+from clusters.clusters import GROUPER_CHLP, GROUPER_CLUSTERS
+
 font = {'family': 'sans-serif',
         'sans-serif': 'Helvetica Neue',
         'weight': 'light',
@@ -29,61 +32,8 @@ barcolor = '#2250d9'
 bin_partition = np.arange(0, bin_max + 1, binsize)
 tick_partition = np.arange(0, bin_max + 1, bin_max // (bin_max / (4 * binsize)))
 
-grouper = 'genotype night light replicate chloroplast'.split(' ')
 
-
-def pocket_score(x):
-    if (len(x) == 1) & (x['cluster_size'] == 0).all():
-        return x.sum()
-    else:
-        return x.count()
-
-
-def clusters_categorise(df, grouper, bin_partition):
-    _df = df.copy()
-    _df['granules_in_category'] = _df['cluster_size']
-    grouped = _df.groupby(grouper).sum()[
-        ['granules_in_category']].reset_index()
-    grouped['binned'] = pd.cut(grouped['cluster_size'], bin_partition, labels=bin_partition[:-1], right=False)
-    return grouped
-
-
-def pretty_time(time):
-    if time < 1:
-        return f"+ {int(60 * time)} min"
-    else:
-        return f"+ {int(time)} h"
-
-
-test_df = pd.DataFrame({'genotype': ['wt', 'wt', 'wt', 'wt', 'wt', 'wt'],
-                        'night': [16, 16, 16, 16, 16, 16],
-                        'light': [0, 0, 0, 0, 8, 8],
-                        'replicate': [1, 1, 1, 2, 1, 1],
-                        'stack': [1, 1, 1, 1, 2, 2],
-                        'chloroplast': [1, 2, 2, 1, 1, 1],
-                        'cluster_size': [0, 8, 8, 2, 3, 1]})
-
-test_granule_number = test_df.groupby(grouper).sum()['cluster_size']
-assert list(test_granule_number) == [0, 16, 2, 4]
-
-test_pocket_number = test_df.groupby(grouper).apply(pocket_score)['cluster_size']
-assert list(test_pocket_number) == [0, 2, 1, 2]
-
-categories_grouper = 'genotype night light cluster_size'.split(' ')
-test_grouped = clusters_categorise(test_df, grouper=categories_grouper, bin_partition=bin_partition)
-
-assert list(test_grouped['binned']) == [0, 2, 8, 1, 3]
-assert list(test_grouped['granules_in_category']) == [0, 2, 16, 1, 3]
-
-test_sub = test_grouped.loc[test_grouped['light'] == 8]
-plt.bar(test_sub['binned'], test_sub['granules_in_category'] / test_sub['granules_in_category'].sum() / binsize,
-        color=barcolor, align='center', width=1)
-plt.xticks(bin_partition)
-plt.xlim(0, bin_max)
-plt.savefig('/Users/leoburgy/Desktop/test.pdf')
-
-if __name__ == '__main__':
-
+def main():
     clusters = pd.read_excel(project_path / 'clusters_ss4.xlsx')
     clusters = clusters.fillna(method='ffill')
 
@@ -93,7 +43,7 @@ if __name__ == '__main__':
     clusters = clusters.loc[clusters['light'].isin(time_points)]
 
     # Derive the granule number
-    granule_number = clusters.groupby(grouper)[['cluster_size']].sum()
+    granule_number = clusters.groupby(GROUPER_CHLP)[['cluster_size']].sum()
     granule_number.columns = ['granule_number']
     granule_number = granule_number.reset_index().sort_values(by=['night', 'light'], ascending=True)
     granule_number.to_excel(project_path / 'granule_number.xlsx')
@@ -109,7 +59,7 @@ if __name__ == '__main__':
 
     # Derive the pocket number
     pocket_number = (clusters
-                     .groupby(grouper)[['cluster_size']]
+                     .groupby(GROUPER_CHLP)[['cluster_size']]
                      .apply(pocket_score))
     pocket_number.columns = ['pocket_number']
     pocket_number = pocket_number.reset_index().sort_values(by=['night', 'light'], ascending=True)
@@ -131,7 +81,7 @@ if __name__ == '__main__':
     n_chloroplasts_weights.to_excel(project_path / f'chloroplasts_examined_{genotype}.xlsx')
 
     # Refactor weighting of cluster sizes
-    grouped_category = clusters_categorise(df=clusters, grouper=categories_grouper, bin_partition=bin_partition)
+    grouped_category = clusters_categorise(df=clusters, grouper=GROUPER_CLUSTERS, bin_partition=bin_partition)
 
     # Plot distributions of each parameters
     fig, axs = plt.subplots(nrows=3, ncols=len(time_points), figsize=(5, 3.5), sharey=False)
@@ -180,8 +130,6 @@ if __name__ == '__main__':
         ax.set_xlim(0, bin_max)
         ax.set_xticks(tick_partition)
 
-        # axs.set_ylim(0, .6)
-
         ax.spines['right'].set_visible(False)
         ax.spines['top'].set_visible(False)
         ax.tick_params(axis='both', width=.5)
@@ -190,3 +138,7 @@ if __name__ == '__main__':
 
     fig.tight_layout(h_pad=3)
     fig.savefig(project_path / f'cluster_size_{genotype}_N{night}h_by{binsize}_cutoff{cutoff}_max{bin_max}.pdf')
+
+
+if __name__ == '__main__':
+    main()
