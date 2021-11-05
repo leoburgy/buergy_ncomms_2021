@@ -22,11 +22,11 @@ def main():
         'B': 'Jenny-Nov-2014_035',
         'C': 'Jenny-Nov-2014_060',
     }
-    letter = 'A'
+    letter = 'C'
 
     path_project = Path(f'/Users/leoburgy/Dropbox/buergy_ncomms/data/sfig6/{letter}')
     im_name = nrrd_masks[letter]
-    path_nrrd = path_project.parent.parent / 'fig5' / letter
+    path_nrrd = path_project.parent.parent / 'fig5' / letter / f'{im_name}.nrrd'
     path_mask = path_project / f'{im_name}_delta_class_Granule.png'
 
     if not path_nrrd.exists():
@@ -53,7 +53,7 @@ def main():
     print(mask.shape)
     contours = retrieve_contours(mask)
 
-    p = 3
+    p = 5
     profiles = []
     for i, contour in enumerate(contours):
         profiles.append(extract_profile(delta, contour, p=p))
