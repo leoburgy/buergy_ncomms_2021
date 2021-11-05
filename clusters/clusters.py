@@ -2,6 +2,8 @@ import pandas as pd
 
 GROUPER_CHLP = 'genotype night light replicate chloroplast'.split(' ')
 GROUPER_CLUSTERS = 'genotype night light cluster_size'.split(' ')
+GROUPER_REPLICATES = GROUPER_CHLP[:-1]
+GROUPER_CONDITIONS = GROUPER_REPLICATES[:-1]
 
 
 def pocket_score(x):
