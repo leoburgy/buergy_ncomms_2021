@@ -70,44 +70,14 @@ def main():
     fig, axs = plt.subplots(nrows=3, ncols=len(time_points), figsize=(5, 3.5), sharey=False)
 
     a = axs[0, :]
-    for i, t in enumerate(sorted(granule_number.light.unique())):
-        sub = granule_number.loc[granule_number['light'] == t]
-        a[i].hist(sub['granule_number'],
-                  bins=bin_partition,
-                  color=barcolor,
-                  rwidth=.8,
-                  density=True)
-
-        if i == 1:
-            a[i].set_xlabel('# granules / chloroplast')
-
-        title = pretty_time(t)
-        a[i].set_title(title)
-
     b = axs[1, :]
-    for i, t in enumerate(sorted(granule_number.light.unique())):
-        sub = pocket_number.loc[pocket_number['light'] == t]
-        b[i].hist(sub['pocket_number'],
-                  bins=bin_partition,
-                  color=barcolor,
-                  rwidth=.8,
-                  density=True)
-
-        if i == 1:
-            b[i].set_xlabel('# pockets / chloroplast')
-
     c = axs[2, :]
-    for i, t in enumerate(sorted(grouped_category.light.unique())):
-        sub = grouped_category.loc[grouped_category['light'] == t]
 
-        c[i].bar(sub['cluster_size'],
-                 sub['granules_in_category'] / sub['granules_in_category'].sum() / binsize,  # normalise
-                 color=barcolor,
-                 align='edge',
-                 width=.8)
-
-        if i == 1:
-            c[i].set_xlabel("# granules in cluster category")
+    plot_histogram(granule_number, 'granule_number', x_label='# granules / chloroplast', ax=a, bar_color=bar_color,
+                   bin_partition=bin_partition)
+    plot_histogram(pocket_number, 'pocket_number', x_label='# pockets / chloroplast', ax=b, bar_color=bar_color,
+                   bin_partition=bin_partition)
+    category_plot(grouped_category, x_label="# granules in cluster category", ax=c, bar_color=bar_color)
 
     for i, ax in enumerate(axs.ravel()):
         ax.set_xlim(0, bin_max)
@@ -120,7 +90,7 @@ def main():
             ax.set_ylabel('Frequency')
 
     fig.tight_layout(h_pad=3)
-    fig.savefig(project_path / f'cluster_size_{genotype}_N{night}h_by{binsize}_cutoff{cutoff}_max{bin_max}.pdf')
+    fig.savefig(project_path / f'cluster_size_{genotype}_N{night}h_by{bin_size}_cutoff{cutoff}_max{bin_max}.pdf')
 
 
 if __name__ == '__main__':

@@ -1,4 +1,5 @@
 import pandas as pd
+import numpy as np
 
 GROUPER_CHLP = 'genotype night light replicate chloroplast'.split(' ')
 GROUPER_CLUSTERS = 'genotype night light cluster_size'.split(' ')
@@ -56,12 +57,40 @@ def derive_pocket_number(data, grouper):
     return pocket_number
 
 
-def weighted_average(data, to_average_column='granule_number', weight_column='chloroplast'):
-    weights = data.groupby(GROUPER_REPLICATES).count()[weight_column]
-    data['weight'] = weights
+def weighted_average(data, to_average_column='granule_number'):
     averaged = data.groupby(GROUPER_CONDITIONS).apply(
         lambda x: np.average(x[to_average_column],
                              weights=x['weight']))
     averaged.name = f'w_avg_{to_average_column}'
 
     return averaged
+
+
+def plot_histogram(data, quantity, x_label, ax, bin_partition, bar_color):
+    for i, t in enumerate(sorted(data.light.unique())):
+        sub = data.loc[data['light'] == t]
+        ax[i].hist(sub[quantity],
+                   bins=bin_partition,
+                   color=bar_color,
+                   rwidth=.8,
+                   density=True)
+
+        if i == 1:
+            ax[i].set_xlabel(x_label)
+
+        title = pretty_time(t)
+        ax[i].set_title(title)
+
+
+def category_plot(grouped_category, x_label, ax, bar_color):
+    for i, t in enumerate(sorted(grouped_category.light.unique())):
+        sub = grouped_category.loc[grouped_category['light'] == t]
+
+        ax[i].bar(sub['cluster_size'],
+                  sub['granules_in_category'] / sub['granules_in_category'].sum() / bin_size,  # Normalise
+                  color=bar_color,
+                  align='edge',
+                  width=.8)
+
+        if i == 1:
+            ax[i].set_xlabel(x_label)
